@@ -1,7 +1,7 @@
 # RainScore · 雨准
 
 Forecast-vs-actual rainfall scorecard for durian farmers. Compares Open-Meteo
-**Best Match** and **ECMWF IFS 9km** rain forecasts against **ERA5** actual rainfall,
+**GraphCast AI** and **ECMWF IFS 9km** rain forecasts against **ERA5** actual rainfall,
 per GPS location, and tells you which model has been more accurate.
 
 Two scores, because farmers care about two different things:
@@ -58,4 +58,12 @@ request and confirm the host isn't blocked by the network.
 - `CACHE_TAG` / `CACHE` in `sw.js` — bump both together on each update so installed
   phones pick up new code.
 
-Data: Open-Meteo (CC BY 4.0). Forecasts Best Match & ECMWF IFS 9km (`ecmwf_ifs`, same model family as WeatherNext); actuals ERA5.
+Data: Open-Meteo (CC BY 4.0). Forecasts GraphCast AI (`gfs_graphcast025`) & ECMWF IFS 9km (`ecmwf_ifs`); actuals ERA5.
+
+## Why GraphCast, not Best Match
+In Malaysia, Open-Meteo's `best_match` resolves to ECMWF IFS (the best global
+model for the region), so comparing Best Match against ECMWF would compare the
+same model to itself — both columns came out identical in testing. GraphCast
+(`gfs_graphcast025`) is a distinct AI/ML model, giving a real physics-vs-AI
+head-to-head. If you ever want a different second model, change the one string in
+`syncLocation()` and update the `bm:` labels in both language blocks.
