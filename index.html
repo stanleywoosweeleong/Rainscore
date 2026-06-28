@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2a37">
+<title>RainScore · 雨准</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --bg:#0f1620; --panel:#172230; --panel2:#1f2d3d; --ink:#e8eef5; --ink2:#9fb1c6;
+  --line:#2b3a4d; --rain:#4aa8d8; --bm:#5dd0c0; --ec:#e3a857; --win:#7bd88f;
+  --bad:#e2715f; --warn:#e3b341; --shadow:rgba(0,0,0,.35);
+  --pad:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Segoe UI",system-ui,-apple-system,"Microsoft YaHei","PingFang SC",sans-serif;
+  font-size:16px;line-height:1.5}
+body{padding:env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 8px)}
+.wrap{max-width:760px;margin:0 auto;padding:0 var(--pad)}
+header{display:flex;align-items:center;gap:10px;padding:14px var(--pad) 12px;
+  position:sticky;top:0;background:linear-gradient(180deg,var(--bg) 70%,transparent);z-index:20}
+.logo{display:flex;align-items:baseline;gap:7px;font-weight:700;letter-spacing:.5px}
+.logo .drop{font-size:22px;line-height:1}
+.logo .name{font-size:19px}
+.logo .sub{font-size:12px;color:var(--ink2);font-weight:500}
+.spacer{flex:1}
+.lang{background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.lang:active{transform:scale(.96)}
+.add-btn{background:var(--rain);border:none;color:#06121b;border-radius:999px;
+  width:34px;height:34px;font-size:21px;font-weight:700;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0}
+.add-btn:active{transform:scale(.92)}
+.add-btn.on{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.form-panel{margin-top:12px;padding-top:14px;border-top:1px solid var(--line)}
+.form-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.form-head span{font-size:15px;font-weight:700}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:16px;margin:12px 0;box-shadow:0 1px 0 var(--shadow)}
+.card h2{margin:0 0 4px;font-size:14px;letter-spacing:.4px;color:var(--ink2);
+  text-transform:uppercase;font-weight:600}
+label.fld{display:block;font-size:13px;color:var(--ink2);margin:10px 0 4px}
+input,select{width:100%;background:var(--panel2);border:1px solid var(--line);
+  color:var(--ink);border-radius:9px;padding:11px 12px;font-size:15px;font-family:inherit}
+input:focus,select:focus{outline:2px solid var(--rain);outline-offset:0}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.btn{display:block;width:100%;border:none;border-radius:10px;padding:13px;
+  font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:12px}
+.btn:active{transform:scale(.985)}
+.btn-primary{background:var(--rain);color:#06121b}
+.btn-ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.btn-mini{padding:7px 12px;font-size:13px;border-radius:8px;width:auto;margin:0}
+.loc-list{display:flex;flex-direction:column;gap:8px}
+.loc{display:flex;align-items:center;gap:10px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.loc.active{border-color:var(--rain);box-shadow:inset 0 0 0 1px var(--rain)}
+.loc .nm{font-weight:600;font-size:15px}
+.loc .co{font-size:12px;color:var(--ink2)}
+.loc .gap{margin-left:auto;font-size:11px;color:var(--warn)}
+.loc-actions{display:flex;gap:6px;margin-left:auto}
+.icon-btn{background:var(--panel);border:1px solid var(--line);color:var(--ink2);
+  border-radius:8px;padding:6px 9px;font-size:13px;cursor:pointer;font-family:inherit;line-height:1}
+.icon-btn:active{transform:scale(.92)}
+.icon-btn.del:hover{color:var(--bad);border-color:var(--bad)}
+.loc.deleted{opacity:.5}
+.loc.deleted .nm{text-decoration:line-through}
+.bin{margin-top:12px}
+.bin summary{color:var(--ink2);font-size:13px}
+.bin .loc{margin-top:8px}
+.purge-btn{background:rgba(226,113,95,.1);border:1px solid rgba(226,113,95,.35);
+  color:var(--bad);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;margin-top:8px;width:auto}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);
+  transform:translateX(-50%) translateY(20px);background:var(--panel2);
+  border:1px solid var(--line);color:var(--ink);padding:11px 16px;border-radius:10px;
+  font-size:13.5px;box-shadow:0 6px 24px var(--shadow);opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .25s;z-index:50;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast u{cursor:pointer;color:var(--rain);font-weight:700;margin-left:8px}
+.muted{color:var(--ink2);font-size:13px}
+.tiny{font-size:11.5px;color:var(--ink2)}
+
+/* verdict */
+.verdict{background:linear-gradient(135deg,#192634,#15202c);
+  border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin:12px 0}
+.verdict .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.verdict .head .loc-nm{font-size:17px;font-weight:700}
+.verdict .head .span{font-size:12px;color:var(--ink2)}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:10px}
+.mcol{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:14px 12px;text-align:center;position:relative}
+.mcol.winner{border-color:var(--win);box-shadow:0 0 0 1px var(--win)}
+.mcol .mname{font-size:13px;font-weight:700;letter-spacing:.3px}
+.mcol.bm .mname{color:var(--bm)} .mcol.ec .mname{color:var(--ec)}
+.mcol .metric{margin-top:10px}
+.mcol .mlabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2)}
+.mcol .mval{font-size:26px;font-weight:800;line-height:1.1;margin-top:1px;
+  font-variant-numeric:tabular-nums}
+.mcol .munit{font-size:12px;color:var(--ink2)}
+.mcol .crown{position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+  background:var(--win);color:#06121b;font-size:10px;font-weight:800;
+  padding:2px 8px;border-radius:999px;letter-spacing:.4px}
+.vmid{display:flex;align-items:center;justify-content:center;color:var(--ink2);
+  font-size:13px;font-weight:700}
+.verdict .line{margin-top:14px;padding-top:13px;border-top:1px solid var(--line);
+  font-size:14.5px;line-height:1.45}
+.verdict .line b.bm{color:var(--bm)} .verdict .line b.ec{color:var(--ec)}
+.dualnote{margin-top:10px;font-size:12px;color:var(--ink2);line-height:1.5}
+
+/* table */
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel)}
+thead th{color:var(--ink2);font-weight:600;font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.3px;border-bottom:1px solid var(--line)}
+tbody tr:last-child td{border-bottom:none}
+td.bm{color:var(--bm)} td.ec{color:var(--ec)} td.act{color:var(--rain);font-weight:600}
+td.pending{color:var(--ink2);font-style:italic}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:4px}
+.dot.hit{background:var(--win)} .dot.miss{background:var(--bad)}
+tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:none;padding-top:9px}
+tfoot td.label{color:var(--ink2);font-weight:600;text-transform:uppercase;font-size:11px}
+
+.banner{border-radius:10px;padding:10px 12px;font-size:13px;margin:10px 0;line-height:1.5}
+.banner.warn{background:rgba(227,179,65,.12);border:1px solid rgba(227,179,65,.4);color:#f0d488}
+.banner.info{background:rgba(74,168,216,.1);border:1px solid rgba(74,168,216,.35);color:#a9d6ee}
+.banner.bad{background:rgba(226,113,95,.12);border:1px solid rgba(226,113,95,.4);color:#f0a99b}
+.status{font-size:12px;color:var(--ink2);margin-top:8px;min-height:16px}
+.empty{text-align:center;color:var(--ink2);padding:26px 10px;font-size:14px}
+.empty .big{font-size:30px;margin-bottom:8px}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);
+  border-radius:9px;padding:3px;gap:3px;margin-top:6px}
+.seg button{flex:1;border:none;background:transparent;color:var(--ink2);
+  padding:7px;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--rain);color:#06121b}
+details{margin-top:10px}
+summary{cursor:pointer;font-size:13px;color:var(--ink2);padding:4px 0}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+hr.sep{border:none;border-top:1px solid var(--line);margin:14px 0}
+footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
+@media(max-width:420px){
+  .mcol .mval{font-size:22px}
+  body{font-size:15px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <span class="drop">🌧️</span>
+    <span class="name" id="brandName">RainScore</span>
+    <span class="sub" id="brandSub">forecast vs actual</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="add-btn" id="btnOpenAdd" title="Add a location">＋</button>
+  <button class="lang" id="langBtn">中文</button>
+</header>
+
+<div class="wrap">
+
+  <div id="toast" class="toast"></div>
+
+  <!-- LOCATIONS -->
+  <div class="card">
+    <h2 id="t_locations">Locations</h2>
+    <div class="loc-list" id="locList"></div>
+
+    <!-- add/edit form: hidden by default, opened from the header + button -->
+    <div id="formPanel" class="form-panel" style="display:none">
+      <div class="form-head">
+        <span id="formTitle">Add a location</span>
+        <button class="icon-btn" id="btnCloseForm" type="button" aria-label="Close">✕</button>
+      </div>
+      <div id="editingTag" class="banner info" style="display:none"></div>
+      <label class="fld" id="t_locname">Name</label>
+      <input id="inName" placeholder="Manchis Orchard">
+      <div class="row">
+        <div>
+          <label class="fld" id="t_lat">Latitude</label>
+          <input id="inLat" inputmode="decimal" placeholder="3.62">
+        </div>
+        <div>
+          <label class="fld" id="t_lon">Longitude</label>
+          <input id="inLon" inputmode="decimal" placeholder="102.07">
+        </div>
+      </div>
+      <button class="btn btn-ghost" id="btnGps" type="button">📍 <span id="t_gps">Use my GPS</span></button>
+      <button class="btn btn-primary" id="btnAdd" type="button">Save location</button>
+      <button class="btn btn-ghost" id="btnCancelEdit" type="button" style="display:none"></button>
+    </div>
+
+    <!-- recycle bin -->
+    <div id="binMount"></div>
+  </div>
+
+  <!-- DATA STATUS -->
+  <div class="card" id="syncCard" style="display:none">
+    <h2 id="t_data">Data</h2>
+    <div class="seg" id="rangeSeg">
+      <button data-r="7" class="on">7d</button>
+      <button data-r="14">14d</button>
+      <button data-r="30" class="on">30d</button>
+    </div>
+    <button class="btn btn-primary" id="btnSync" type="button">🔄 <span id="t_sync">Update records</span></button>
+    <div class="status" id="syncStatus"></div>
+    <div class="banner info" id="howNote" style="margin-top:12px"></div>
+  </div>
+
+  <!-- VERDICT -->
+  <div id="verdictMount"></div>
+
+  <!-- TABLE -->
+  <div id="tableMount"></div>
+
+  <footer>
+    <div id="t_foot">Forecasts: Open-Meteo Best Match &amp; ECMWF IFS · Actual: ERA5 reanalysis · CC BY 4.0</div>
+    <div class="tiny" style="margin-top:4px" id="t_cache"></div>
+  </footer>
+</div>
+
+<script>
+/* ============ RainScore — forecast-vs-actual rainfall scorecard ============
+   Conventions: single-file PWA, localStorage, Asia/Kuching, no fabricated data.
+   Forecast source: Previous Runs API (precipitation_previous_day1 = what was
+   forecast 24h before the day). Actual source: ERA5 archive precipitation_sum. */
+
+const TZ = "Asia/Kuching";
+const STORE_KEY = "rainscore_v1";
+const CACHE_TAG = "rainscore-20260627-04";
+const DRY_THRESHOLD = 1.0;   // mm — <1mm counts as a "dry day" (field-adjustable)
+const PREV_HOST = "https://previous-runs-api.open-meteo.com/v1/forecast";
+const ARCH_HOST = "https://archive-api.open-meteo.com/v1/archive";
+
+/* ---------- i18n (one-tap toggle, zh structural base) ---------- */
+const I18N = {
+  zh:{
+    brandName:"雨准", brandSub:"预报 对 实际",
+    locations:"地点", addloc:"+ 新增地点", locname:"名称", lat:"纬度", lon:"经度",
+    gps:"使用我的 GPS", save:"保存地点", data:"数据", sync:"更新记录",
+    foot:"预报：Open-Meteo Best Match 与 ECMWF IFS · 实际：ERA5 再分析 · CC BY 4.0",
+    langBtn:"EN",
+    emptyLoc:"先新增一个果园地点", emptyLocBig:"📍",
+    pickLoc:"选择上方地点查看记分", noData:"尚无记录，点「更新记录」",
+    how:"每次打开会记录各模型对「今天」的雨量预报，并用最近 7 天的存档自动补回遗漏的日子。实际雨量用 ERA5 再分析回填（约延迟 5 天）。",
+    mae:"平均误差", maeUnit:"毫米/天", hit:"晴雨命中", hitUnit:"准确率",
+    days:"天", winner:"较准", tie:"打平",
+    closerAmt:(w)=>`雨量上，<b class="${w.cls}">${w.name}</b> 这个月更接近实际。`,
+    closerHit:(w)=>`判断「有雨／无雨」上，<b class="${w.cls}">${w.name}</b> 命中更高。`,
+    tieAmt:"雨量上两个模型不相上下。",
+    tieHit:"晴雨判断上两个模型不相上下。",
+    dualnote:"两个分数回答不同问题：平均误差＝雨量信得过多少；晴雨命中＝它说「无雨」时信得过多少。",
+    colDate:"日期", colBM:"BM预报", colEC:"EC预报", colAct:"实际", colBMd:"BM差", colECd:"EC差",
+    pending:"待回填", legendHit:"晴雨判对", legendMiss:"晴雨判错",
+    bm:"Best Match", ec:"ECMWF",
+    syncing:"更新中…", synced:(n)=>`已更新 · ${n} 天有实际数据`,
+    syncErr:"更新失败，请检查网络", gpsErr:"无法取得定位", gpsOk:"已带入坐标",
+    needName:"请填写名称与坐标", confirmDel:"删除此地点及其记录？",
+    cache:`缓存 ${CACHE_TAG}`, del:"删除",
+    daysWithActual:(n)=>`${n} 天有实际雨量可比对`,
+    edit:"编辑", restore:"恢复", save:"保存地点", update:"更新地点",
+    cancel:"取消编辑", editing:(n)=>`正在编辑：${n}`,
+    addloc2:"+ 新增地点",
+    bin:(n)=>`回收站（${n}）`, purge:"永久清空回收站",
+    confirmPurge:"永久删除回收站内所有地点及其记录？此操作不可撤销。",
+    softDeleted:"已删除", undo:"撤销", restored:"已恢复 ✓", purged:"回收站已清空",
+    keptHist:"记录已保留，可随时恢复",
+    keptNear:(m)=>`位置微调 ${m} 米（同一网格）· 记录已保留`,
+  },
+  en:{
+    brandName:"RainScore", brandSub:"forecast vs actual",
+    locations:"Locations", addloc:"+ Add a location", locname:"Name", lat:"Latitude", lon:"Longitude",
+    gps:"Use my GPS", save:"Save location", data:"Data", sync:"Update records",
+    foot:"Forecasts: Open-Meteo Best Match & ECMWF IFS · Actual: ERA5 reanalysis · CC BY 4.0",
+    langBtn:"中文",
+    emptyLoc:"Add an orchard location to begin", emptyLocBig:"📍",
+    pickLoc:"Pick a location above to see its scorecard", noData:"No records yet — tap Update records",
+    how:"Each time you open the app it logs what every model forecast for today, and back-fills any missed days from the last 7 days of archive. Actual rain is filled from ERA5 reanalysis (about 5 days behind).",
+    mae:"Avg miss", maeUnit:"mm/day", hit:"Dry/wet calls", hitUnit:"correct",
+    days:"days", winner:"closer", tie:"tie",
+    closerAmt:(w)=>`On rain amount, <b class="${w.cls}">${w.name}</b> was closer this month.`,
+    closerHit:(w)=>`On calling rain vs dry, <b class="${w.cls}">${w.name}</b> got more right.`,
+    tieAmt:"On rain amount, the two models were level this month.",
+    tieHit:"On dry/wet calls, the two models were level.",
+    dualnote:"The two scores answer different questions: Avg miss = how much to trust the amount; Dry/wet calls = how much to trust it when it says “dry”.",
+    colDate:"Date", colBM:"BM fc", colEC:"EC fc", colAct:"Actual", colBMd:"BM err", colECd:"EC err",
+    pending:"pending", legendHit:"dry/wet right", legendMiss:"dry/wet wrong",
+    bm:"Best Match", ec:"ECMWF",
+    syncing:"Updating…", synced:(n)=>`Updated · ${n} days with actuals`,
+    syncErr:"Update failed — check connection", gpsErr:"Couldn't get location", gpsOk:"Coordinates filled",
+    needName:"Enter a name and coordinates", confirmDel:"Delete this location and its records?",
+    cache:`Cache ${CACHE_TAG}`, del:"Delete",
+    daysWithActual:(n)=>`${n} days have actual rain to compare`,
+    edit:"Edit", restore:"Restore", save:"Save location", update:"Update location",
+    cancel:"Cancel edit", editing:(n)=>`Editing: ${n}`,
+    addloc2:"+ Add a location",
+    bin:(n)=>`Recycle bin (${n})`, purge:"Empty recycle bin permanently",
+    confirmPurge:"Permanently delete all locations in the bin and their records? This cannot be undone.",
+    softDeleted:"Deleted", undo:"Undo", restored:"Restored ✓", purged:"Recycle bin emptied",
+    keptHist:"Records kept — restore anytime",
+    keptNear:(m)=>`Moved ${m} m (same grid cell) · records kept`,
+  }
+};
+let LANG = localStorage.getItem("rainscore_lang") || "zh";
+const T = ()=>I18N[LANG];
+
+/* ---------- state ---------- */
+let state = load();
+let activeLoc = (state.locations.find(l=>!l.deleted)||{}).id || null;
+let range = 30;
+
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(STORE_KEY)); if(s&&s.locations) return s; }catch(e){}
+  return { locations:[], records:{} }; // records[locId] = { 'YYYY-MM-DD': {bm,ec,actual} }
+}
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+/* ---------- date helpers (local Asia/Kuching calendar days) ---------- */
+function ymd(d){ // format a Date as YYYY-MM-DD in TZ
+  return new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+}
+function todayYMD(){ return ymd(new Date()); }
+function daysAgoYMD(n){ const d=new Date(); d.setDate(d.getDate()-n); return ymd(d); }
+function dateRange(n){ const out=[]; for(let i=n-1;i>=0;i--) out.push(daysAgoYMD(i)); return out; }
+function shortDate(s){ const [y,m,d]=s.split("-"); return `${+m}/${+d}`; }
+
+/* Distance between two GPS points in metres (haversine).
+   Used to decide whether a coordinate edit keeps the comparison history:
+   within MOVE_KEEP_M the points share the same weather grid cell, so the
+   forecast/actual records remain valid. */
+const MOVE_KEEP_M = 1000; // 1 km
+function distM(lat1, lon1, lat2, lon2){
+  const R = 6371000, rad = Math.PI/180;
+  const dLat=(lat2-lat1)*rad, dLon=(lon2-lon1)*rad;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(a)));
+}
+
+/* ---------- API: fetch with gentle retry (Open-Meteo 503 throttle aware) ---------- */
+async function fetchJSON(url, tries=3){
+  let lastErr;
+  for(let i=0;i<tries;i++){
+    try{
+      const r = await fetch(url);
+      if(r.status===503){ await sleep(2500+Math.random()*1800); continue; }
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      return await r.json();
+    }catch(e){ lastErr=e; await sleep(900+Math.random()*900); }
+  }
+  throw lastErr || new Error("fetch failed");
+}
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+/* Sum hourly precipitation into per-local-day totals.
+   The Previous Runs API returns hourly arrays; we bucket by local date. */
+function bucketHourly(times, values){
+  const out = {};
+  if(!times||!values) return out;
+  for(let i=0;i<times.length;i++){
+    const day = times[i].slice(0,10); // API already returns local time when timezone set
+    const v = values[i];
+    if(v==null) continue;
+    out[day] = (out[day]||0) + v;
+  }
+  // round to 1 dp
+  for(const k in out) out[k] = Math.round(out[k]*10)/10;
+  return out;
+}
+
+/* Pull the "as-forecast 1 day ahead" daily totals for one model.
+   day1 offset = what was predicted 24h before that day — the honest forecast. */
+async function fetchForecastDaily(lat, lon, model, pastDays){
+  const params = new URLSearchParams({
+    latitude:lat, longitude:lon, timezone:TZ,
+    past_days:String(Math.min(pastDays,7)), forecast_days:"1",
+    hourly:"precipitation_previous_day1"
+  });
+  if(model) params.set("models", model);
+  const j = await fetchJSON(`${PREV_HOST}?${params}`);
+  return bucketHourly(j.hourly?.time, j.hourly?.precipitation_previous_day1);
+}
+
+/* Actual daily rain from ERA5 archive (precipitation_sum already daily). */
+async function fetchActualDaily(lat, lon, startYMD, endYMD){
+  const params = new URLSearchParams({
+    latitude:lat, longitude:lon, timezone:TZ,
+    start_date:startYMD, end_date:endYMD,
+    daily:"precipitation_sum"
+  });
+  const j = await fetchJSON(`${ARCH_HOST}?${params}`);
+  const out={}; const t=j.daily?.time||[], p=j.daily?.precipitation_sum||[];
+  for(let i=0;i<t.length;i++) if(p[i]!=null) out[t[i]] = Math.round(p[i]*10)/10;
+  return out;
+}
+
+/* ---------- the sync routine: log-on-open + 7-day gap-fill + ERA5 actuals ---------- */
+async function syncLocation(loc, pastDays, onStep){
+  const recs = state.records[loc.id] || (state.records[loc.id]={});
+  // 1) Forecasts: recover last min(pastDays,7) days from Previous Runs (self-heals gaps)
+  onStep && onStep("forecast");
+  const [bm, ec] = await Promise.all([
+    fetchForecastDaily(loc.lat, loc.lon, "", pastDays),          // Best Match = no model param
+    fetchForecastDaily(loc.lat, loc.lon, "ecmwf_ifs025", pastDays)
+  ]);
+  for(const day in bm){ recs[day]=recs[day]||{}; if(recs[day].bm==null) recs[day].bm=bm[day]; }
+  for(const day in ec){ recs[day]=recs[day]||{}; if(recs[day].ec==null) recs[day].ec=ec[day]; }
+  // never overwrite an already-logged forecast — first capture wins (honest record)
+
+  // 2) Actuals: ERA5 over the whole requested window (safe to refresh; truth doesn't change)
+  onStep && onStep("actual");
+  const start = daysAgoYMD(pastDays-1), end = todayYMD();
+  try{
+    const act = await fetchActualDaily(loc.lat, loc.lon, start, end);
+    for(const day in act){ recs[day]=recs[day]||{}; recs[day].actual=act[day]; }
+  }catch(e){ /* ERA5 lag: recent days simply stay pending */ }
+
+  save();
+}
+
+/* ---------- scoring ---------- */
+function scoreLocation(locId, n){
+  const recs = state.records[locId]||{};
+  const days = dateRange(n);
+  const rows=[]; let bmAbs=0, ecAbs=0, cmpN=0, bmHit=0, ecHit=0, hitN=0;
+  for(const day of days){
+    const r = recs[day]||{};
+    const row = { day, bm:r.bm, ec:r.ec, actual:r.actual, bmErr:null, ecErr:null, bmHit:null, ecHit:null };
+    if(r.actual!=null){
+      if(r.bm!=null){ row.bmErr=Math.round((r.bm-r.actual)*10)/10; bmAbs+=Math.abs(r.bm-r.actual); }
+      if(r.ec!=null){ row.ecErr=Math.round((r.ec-r.actual)*10)/10; ecAbs+=Math.abs(r.ec-r.actual); }
+      if(r.bm!=null&&r.ec!=null){ cmpN++; }
+      const actWet = r.actual>=DRY_THRESHOLD;
+      if(r.bm!=null){ row.bmHit=((r.bm>=DRY_THRESHOLD)===actWet); }
+      if(r.ec!=null){ row.ecHit=((r.ec>=DRY_THRESHOLD)===actWet); }
+      if(r.bm!=null&&r.ec!=null){ hitN++; if(row.bmHit)bmHit++; if(row.ecHit)ecHit++; }
+    }
+    if(r.bm!=null||r.ec!=null||r.actual!=null) rows.push(row);
+  }
+  const mae = cmpN? { bm:Math.round(bmAbs/cmpN*10)/10, ec:Math.round(ecAbs/cmpN*10)/10 } : null;
+  const hit = hitN? { bm:Math.round(bmHit/hitN*100), ec:Math.round(ecHit/hitN*100), n:hitN } : null;
+  return { rows, mae, hit, cmpN };
+}
+
+/* ---------- rendering ---------- */
+const $ = s=>document.querySelector(s);
+function applyStaticText(){
+  const t=T();
+  $("#brandName").textContent=t.brandName; $("#brandSub").textContent=t.brandSub;
+  $("#langBtn").textContent=t.langBtn;
+  $("#t_locations").textContent=t.locations;
+  $("#formTitle").textContent = editingId? t.update : t.addloc2.replace(/^\+\s*/,"");
+  $("#btnOpenAdd").title = t.addloc2.replace(/^\+\s*/,"");
+  $("#t_locname").textContent=t.locname; $("#t_lat").textContent=t.lat; $("#t_lon").textContent=t.lon;
+  $("#t_gps").textContent=t.gps;
+  $("#btnAdd").textContent = editingId? t.update : t.save;
+  if(editingId){ $("#btnCancelEdit").textContent=t.cancel;
+    const loc=state.locations.find(l=>l.id===editingId);
+    if(loc) $("#editingTag").textContent=t.editing(loc.name); }
+  $("#t_data").textContent=t.data; $("#t_sync").textContent=t.sync;
+  $("#howNote").textContent=t.how; $("#t_foot").innerHTML=t.foot;
+  $("#t_cache").textContent=t.cache;
+  document.documentElement.lang = LANG==="zh"?"zh":"en";
+}
+function activeLocs(){ return state.locations.filter(l=>!l.deleted); }
+function deletedLocs(){ return state.locations.filter(l=>l.deleted); }
+
+function renderLocList(){
+  const t=T(), box=$("#locList");
+  const live = activeLocs();
+  if(!live.length){
+    box.innerHTML=`<div class="empty"><div class="big">${t.emptyLocBig}</div>${t.emptyLoc}</div>`;
+    $("#syncCard").style.display = deletedLocs().length?"block":"none";
+    if(!live.length && !deletedLocs().length) $("#syncCard").style.display="none";
+  } else {
+    $("#syncCard").style.display="block";
+    box.innerHTML="";
+    for(const loc of live){
+      const el=document.createElement("div");
+      el.className="loc"+(loc.id===activeLoc?" active":"");
+      el.innerHTML=`<div><div class="nm">${esc(loc.name)}</div>
+        <div class="co">${(+loc.lat).toFixed(4)}, ${(+loc.lon).toFixed(4)}</div></div>
+        <div class="loc-actions">
+          <button class="icon-btn" data-edit="${loc.id}" title="${t.edit}">✎</button>
+          <button class="icon-btn del" data-del="${loc.id}" title="${t.del}">🗑</button>
+        </div>`;
+      el.addEventListener("click",e=>{
+        if(e.target.dataset.edit!=null){ startEdit(loc.id); return; }
+        if(e.target.dataset.del!=null){ softDelLoc(loc.id); return; }
+        activeLoc=loc.id; renderAll();
+      });
+      box.appendChild(el);
+    }
+  }
+  renderBin();
+}
+
+function renderBin(){
+  const t=T(), mount=$("#binMount");
+  const gone = deletedLocs();
+  if(!gone.length){ mount.innerHTML=""; return; }
+  let items="";
+  for(const loc of gone){
+    items+=`<div class="loc deleted">
+      <div><div class="nm">${esc(loc.name)}</div>
+        <div class="co">${(+loc.lat).toFixed(4)}, ${(+loc.lon).toFixed(4)}</div></div>
+      <div class="loc-actions">
+        <button class="icon-btn" data-restore="${loc.id}">↩ ${t.restore}</button>
+      </div></div>`;
+  }
+  mount.innerHTML=`<details class="bin">
+    <summary>${t.bin(gone.length)}</summary>
+    <div class="loc-list" style="margin-top:8px">${items}</div>
+    <button class="purge-btn" id="btnPurge" type="button">🗑 ${t.purge}</button>
+  </details>`;
+  mount.querySelectorAll("[data-restore]").forEach(b=>
+    b.addEventListener("click",()=>restoreLoc(b.dataset.restore)));
+  $("#btnPurge").addEventListener("click",purgeBin);
+}
+function renderVerdict(){
+  const mount=$("#verdictMount"), t=T();
+  if(!activeLoc){ mount.innerHTML=`<div class="card"><div class="empty">${t.pickLoc}</div></div>`; return; }
+  const loc=state.locations.find(l=>l.id===activeLoc);
+  const sc=scoreLocation(activeLoc, range);
+  if(!sc.mae){ mount.innerHTML=`<div class="card"><div class="empty">${t.noData}</div></div>`; return; }
+
+  const bmWinAmt = sc.mae.bm < sc.mae.ec, amtTie = sc.mae.bm===sc.mae.ec;
+  const bmWinHit = sc.hit && sc.hit.bm > sc.hit.ec, hitTie = sc.hit && sc.hit.bm===sc.hit.ec;
+  const W=(isBm)=>isBm?{name:t.bm,cls:"bm"}:{name:t.ec,cls:"ec"};
+
+  const amtLine = amtTie? t.tieAmt : t.closerAmt(W(bmWinAmt));
+  const hitLine = !sc.hit? "" : (hitTie? t.tieHit : t.closerHit(W(bmWinHit)));
+
+  mount.innerHTML=`
+  <div class="verdict">
+    <div class="head">
+      <div class="loc-nm">${esc(loc.name)}</div>
+      <div class="span">${sc.cmpN} ${t.days} · ${range}d</div>
+    </div>
+    <div class="vs">
+      <div class="mcol bm ${bmWinAmt&&!amtTie?'winner':''}">
+        ${bmWinAmt&&!amtTie?`<div class="crown">${t.winner}</div>`:''}
+        <div class="mname">${t.bm}</div>
+        <div class="metric"><div class="mlabel">${t.mae}</div>
+          <div class="mval">${sc.mae.bm}<span class="munit"> ${t.maeUnit}</span></div></div>
+        ${sc.hit?`<div class="metric"><div class="mlabel">${t.hit}</div>
+          <div class="mval">${sc.hit.bm}<span class="munit">%</span></div></div>`:''}
+      </div>
+      <div class="vmid">vs</div>
+      <div class="mcol ec ${!bmWinAmt&&!amtTie?'winner':''}">
+        ${!bmWinAmt&&!amtTie?`<div class="crown">${t.winner}</div>`:''}
+        <div class="mname">${t.ec}</div>
+        <div class="metric"><div class="mlabel">${t.mae}</div>
+          <div class="mval">${sc.mae.ec}<span class="munit"> ${t.maeUnit}</span></div></div>
+        ${sc.hit?`<div class="metric"><div class="mlabel">${t.hit}</div>
+          <div class="mval">${sc.hit.ec}<span class="munit">%</span></div></div>`:''}
+      </div>
+    </div>
+    <div class="line">${amtLine}${hitLine?"<br>"+hitLine:""}</div>
+    <div class="dualnote">${t.dualnote}</div>
+  </div>`;
+}
+function renderTable(){
+  const mount=$("#tableMount"), t=T();
+  if(!activeLoc){ mount.innerHTML=""; return; }
+  const sc=scoreLocation(activeLoc, range);
+  if(!sc.rows.length){ mount.innerHTML=""; return; }
+  let body="";
+  for(const r of sc.rows.slice().reverse()){
+    const dotBM = r.bmHit==null?"":`<span class="dot ${r.bmHit?'hit':'miss'}"></span>`;
+    const dotEC = r.ecHit==null?"":`<span class="dot ${r.ecHit?'hit':'miss'}"></span>`;
+    body+=`<tr>
+      <td>${shortDate(r.day)}</td>
+      <td class="bm">${r.bm??"—"}${dotBM}</td>
+      <td class="ec">${r.ec??"—"}${dotEC}</td>
+      <td class="${r.actual==null?'pending':'act'}">${r.actual==null?t.pending:r.actual}</td>
+      <td class="bm">${r.bmErr==null?"—":(r.bmErr>0?"+":"")+r.bmErr}</td>
+      <td class="ec">${r.ecErr==null?"—":(r.ecErr>0?"+":"")+r.ecErr}</td>
+    </tr>`;
+  }
+  const foot = sc.mae?`<tfoot><tr>
+      <td class="label">${t.mae}</td>
+      <td class="bm">${sc.mae.bm}</td><td class="ec">${sc.mae.ec}</td>
+      <td></td><td colspan="2" class="label" style="text-align:right">${t.maeUnit}</td>
+    </tr></tfoot>`:"";
+  mount.innerHTML=`
+  <div class="card">
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>${t.colDate}</th><th>${t.colBM}</th><th>${t.colEC}</th>
+        <th>${t.colAct}</th><th>${t.colBMd}</th><th>${t.colECd}</th>
+      </tr></thead>
+      <tbody>${body}</tbody>${foot}
+    </table></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--bm)"></span>${t.bm}</span>
+      <span><span class="sw" style="background:var(--ec)"></span>${t.ec}</span>
+      <span><span class="dot hit"></span>${t.legendHit}</span>
+      <span><span class="dot miss"></span>${t.legendMiss}</span>
+    </div>
+  </div>`;
+}
+function renderAll(){ applyStaticText(); renderLocList(); renderVerdict(); renderTable(); }
+
+/* ---------- actions ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function uid(){ return "L"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+let editingId = null;  // null = add mode; otherwise editing this location
+
+/* toast with optional inline undo action */
+let toastTimer=null;
+function showToast(msg, undoFn){
+  const el=$("#toast");
+  el.innerHTML = esc(msg) + (undoFn? ` <u id="toastUndo">${T().undo}</u>` : "");
+  el.classList.add("show");
+  if(undoFn){ $("#toastUndo").onclick=()=>{ undoFn(); hideToast(); }; }
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(hideToast, undoFn?5000:2200);
+}
+function hideToast(){ $("#toast").classList.remove("show"); }
+
+/* the form's Save button handles both Add (editingId null) and Update */
+function saveLoc(){
+  const name=$("#inName").value.trim(), lat=parseFloat($("#inLat").value), lon=parseFloat($("#inLon").value);
+  if(!name||isNaN(lat)||isNaN(lon)){ $("#syncStatus").textContent=T().needName; return; }
+  if(editingId){
+    const loc=state.locations.find(l=>l.id===editingId);
+    if(loc){
+      const shifted = distM(+loc.lat, +loc.lon, lat, lon);  // metres moved
+      const farMove = shifted > MOVE_KEEP_M;                // beyond 1km = different point
+      loc.name=name; loc.lat=lat; loc.lon=lon;
+      // Within 1km the points share the same weather grid cell, so the existing
+      // forecast/actual records stay valid and are kept. A larger move makes the
+      // old history belong to a different place, so we reset it.
+      if(farMove) state.records[loc.id] = {};
+      save();
+      closeForm(); renderAll();
+      // Re-sync after any coordinate change (refreshes data; keeps records if near).
+      if(shifted>0){
+        activeLoc=loc.id;
+        if(!farMove) showToast(T().keptNear(Math.round(shifted)));
+        doSync();
+      }
+    }
+  } else {
+    const id=uid();
+    state.locations.push({id,name,lat,lon}); save();
+    activeLoc=id; closeForm(); renderAll(); doSync();
+  }
+}
+/* form panel open/close (the + header button toggles add-mode) */
+function openForm(){
+  $("#formPanel").style.display="block";
+  $("#btnOpenAdd").classList.add("on");
+  $("#btnOpenAdd").textContent="✕";
+}
+function closeForm(){
+  $("#formPanel").style.display="none";
+  $("#btnOpenAdd").classList.remove("on");
+  $("#btnOpenAdd").textContent="＋";
+  if(editingId) endEdit();      // leaving the panel also exits edit mode cleanly
+  $("#inName").value=$("#inLat").value=$("#inLon").value="";
+  $("#syncStatus").textContent="";
+}
+function toggleForm(){
+  if($("#formPanel").style.display==="none"){ openForm(); $("#inName").focus(); }
+  else closeForm();
+}
+function startEdit(id){
+  const loc=state.locations.find(l=>l.id===id); if(!loc) return;
+  editingId=id;
+  $("#inName").value=loc.name; $("#inLat").value=loc.lat; $("#inLon").value=loc.lon;
+  openForm();
+  const t=T();
+  $("#formTitle").textContent=t.update;
+  $("#btnAdd").textContent=t.update;
+  $("#editingTag").style.display="block"; $("#editingTag").textContent=t.editing(loc.name);
+  $("#btnCancelEdit").style.display="block"; $("#btnCancelEdit").textContent=t.cancel;
+  $("#formPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function endEdit(){
+  editingId=null;
+  $("#inName").value=$("#inLat").value=$("#inLon").value="";
+  const t=T();
+  $("#formTitle").textContent=t.addloc2.replace(/^\+\s*/,"");
+  $("#btnAdd").textContent=t.save;
+  $("#editingTag").style.display="none";
+  $("#btnCancelEdit").style.display="none";
+}
+
+/* soft delete: flag deleted, keep records, offer undo. Never hard-wipes here. */
+function softDelLoc(id){
+  const loc=state.locations.find(l=>l.id===id); if(!loc) return;
+  loc.deleted=true; save();
+  if(activeLoc===id) activeLoc=activeLocs()[0]?.id||null;
+  renderAll();
+  showToast(`${T().softDeleted} · ${loc.name}`, ()=>restoreLoc(id, true));
+}
+function restoreLoc(id, silent){
+  const loc=state.locations.find(l=>l.id===id); if(!loc) return;
+  delete loc.deleted; save();
+  if(!activeLoc) activeLoc=id;
+  renderAll();
+  if(!silent) showToast(T().restored);
+}
+/* purge: permanent, irreversible — only affects already-soft-deleted locations */
+function purgeBin(){
+  if(!confirm(T().confirmPurge)) return;
+  for(const loc of deletedLocs()) delete state.records[loc.id];
+  state.locations = activeLocs();
+  save(); renderAll();
+  showToast(T().purged);
+}
+
+async function doSync(){
+  if(!activeLoc) return;
+  const loc=state.locations.find(l=>l.id===activeLoc);
+  if(!loc || loc.deleted) return;
+  const st=$("#syncStatus"); st.textContent=T().syncing;
+  try{
+    await syncLocation(loc, range);
+    const sc=scoreLocation(activeLoc, range);
+    st.textContent=T().synced(sc.cmpN);
+    renderVerdict(); renderTable();
+  }catch(e){ st.textContent=T().syncErr; }
+}
+function useGps(){
+  if(!navigator.geolocation){ $("#syncStatus").textContent=T().gpsErr; return; }
+  navigator.geolocation.getCurrentPosition(p=>{
+    $("#inLat").value=p.coords.latitude.toFixed(4);
+    $("#inLon").value=p.coords.longitude.toFixed(4);
+    $("#syncStatus").textContent=T().gpsOk;
+  },()=>{ $("#syncStatus").textContent=T().gpsErr; });
+}
+
+/* ---------- wire up ---------- */
+$("#langBtn").addEventListener("click",()=>{
+  LANG = LANG==="zh"?"en":"zh"; localStorage.setItem("rainscore_lang",LANG); renderAll();
+});
+$("#btnAdd").addEventListener("click",saveLoc);
+$("#btnOpenAdd").addEventListener("click",toggleForm);
+$("#btnCloseForm").addEventListener("click",closeForm);
+$("#btnCancelEdit").addEventListener("click",closeForm);
+$("#btnGps").addEventListener("click",useGps);
+$("#btnSync").addEventListener("click",doSync);
+$("#rangeSeg").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  range=+b.dataset.r;
+  [...$("#rangeSeg").children].forEach(x=>x.classList.toggle("on",x===b));
+  renderVerdict(); renderTable();
+});
+
+/* ---------- boot: render, then log-on-open auto-sync of active location ---------- */
+renderAll();
+if(!state.locations.length){ openForm(); }   // first run: show the form straight away
+if(activeLoc) doSync();   // log-on-open + gap-fill happens here every launch
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
