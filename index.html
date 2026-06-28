@@ -175,7 +175,7 @@ input:focus,select:focus{outline:2px solid var(--rain);outline-offset:0}
   border:1px solid var(--line);color:var(--rain);border-radius:10px;padding:11px;
   font-size:14px;font-weight:600}
 .guide-link:active{transform:scale(.99)}
-.guide-foot{font-size:11.5px;color:var(--ink2);line-height:1.5;text-align:center;
+.guide-foot{font-size:11.5px;color:var(--ink2);line-height:1.6;text-align:left;
   border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
 
 /* table */
@@ -299,7 +299,7 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
 
 const TZ = "Asia/Kuching";
 const STORE_KEY = "rainscore_v1";
-const CACHE_TAG = "rainscore-20260627-19";
+const CACHE_TAG = "rainscore-20260627-22";
 const DRY_THRESHOLD = 1.0;   // mm — <1mm counts as a "dry day" (field-adjustable)
 const PREV_HOST = "https://previous-runs-api.open-meteo.com/v1/forecast";
 const ARCH_HOST = "https://archive-api.open-meteo.com/v1/archive";
@@ -357,7 +357,7 @@ const I18N = {
     copyBtn:"复制", sendWA:"发送到 WhatsApp",
     guideTitle:"使用指南", guideScan:"扫码打开 / 分享此 App",
     guideAppLink:"打开 App 网址", guideRepo:"GitHub 源代码",
-    guideFoot:"数据来源：Open-Meteo（CC BY 4.0）· 预报模式 ECMWF IFS 9km、DWD ICON、JMA GSM · 实际雨量 ERA5 再分析",
+    guideFoot:"数据来源：Open-Meteo（CC BY 4.0）· 预报模式 ECMWF IFS 9km、DWD ICON、JMA GSM<br>实际雨量 ERA5 再分析",
     guideSections:[
       { h:"这个 App 做什么？", p:"对比三个天气模式对每天雨量的预报，跟实际雨量（ERA5）比较，找出哪个模式在你的果园最准。目的是帮那些觉得目前预报不准的农户，看看换个模式会不会更好。" },
       { h:"三个模式", p:"ECMWF IFS 9km＝目前天气预报用的模式（基准）。另外两个候选：DWD ICON（德国，11公里）和 JMA GSM（日本，擅长热带亚洲）。卡片会标出最准的一个，若候选比 IFS 更准，会建议为该农户改用。" },
@@ -406,7 +406,7 @@ const I18N = {
     copyBtn:"Copy", sendWA:"Send to WhatsApp",
     guideTitle:"Guide", guideScan:"Scan to open / share this app",
     guideAppLink:"Open app URL", guideRepo:"GitHub source code",
-    guideFoot:"Data: Open-Meteo (CC BY 4.0) · Models ECMWF IFS 9km, DWD ICON, JMA GSM · Actual rain ERA5 reanalysis",
+    guideFoot:"Data: Open-Meteo (CC BY 4.0) · Models ECMWF IFS 9km, DWD ICON, JMA GSM<br>Actual rain ERA5 reanalysis",
     guideSections:[
       { h:"What this app does", p:"It compares three weather models' daily rain forecasts against the actual rainfall (ERA5), to find which model is most accurate at your orchard. The goal is to help farmers unhappy with the current forecast see whether a different model would serve them better." },
       { h:"The three models", p:"ECMWF IFS 9km = the model your forecast uses now (baseline). Two candidates: DWD ICON (Germany, 11km) and JMA GSM (Japan, strong for tropical Asia). The card crowns the most accurate, and if a candidate beats IFS it suggests switching that farmer." },
@@ -753,7 +753,7 @@ function buildShareText(loc, sc){
     const maePart = mae!=null ? `${t.mae} ${mae} ${t.maeUnit}` : "";
     const hitPart = hit!=null ? `${t.hit} ${hit}%` : "";
     const sep = maePart && hitPart ? " · " : "";
-    lines.push(`▸ ${modelLabel(m.key)}${base}: ${maePart}${sep}${hitPart}`);
+    lines.push(`${modelLabel(m.key)}${base}: ${maePart}${sep}${hitPart}`);
   }
   lines.push("");
   // verdict sentences (strip any HTML tags from the i18n strings)
@@ -864,7 +864,6 @@ function openGuide(){
           </div>`).join("")}
         <div class="guide-links">
           <a href="${APP_URL}" target="_blank" rel="noopener" class="guide-link">🔗 ${t.guideAppLink}</a>
-          <a href="${GITHUB_URL}" target="_blank" rel="noopener" class="guide-link">💻 ${t.guideRepo}</a>
         </div>
         <div class="guide-foot">${t.guideFoot}</div>
       </div>

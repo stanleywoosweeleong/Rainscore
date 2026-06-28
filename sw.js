@@ -1,7 +1,7 @@
 /* RainScore service worker — offline shell only.
    Rule #1: API requests (Open-Meteo) must pass through untouched — bare return,
    never respondWith(JSON). We only cache the app shell. */
-const CACHE = "rainscore-20260627-19";
+const CACHE = "rainscore-20260627-22";
 const SHELL = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", e=>{
