@@ -131,6 +131,10 @@ input:focus,select:focus{outline:2px solid var(--rain);outline-offset:0}
   font-size:14.5px;line-height:1.45}
 .verdict .line b.bm{color:var(--bm)} .verdict .line b.ec{color:var(--ec)}
 .dualnote{margin-top:10px;font-size:12px;color:var(--ink2);line-height:1.5}
+.share-btn{display:block;width:100%;margin-top:14px;border:none;border-radius:10px;
+  padding:12px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;
+  background:#1faa5a;color:#fff}
+.share-btn:active{transform:scale(.985)}
 
 /* table */
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
@@ -254,7 +258,7 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
 
 const TZ = "Asia/Kuching";
 const STORE_KEY = "rainscore_v1";
-const CACHE_TAG = "rainscore-20260627-12";
+const CACHE_TAG = "rainscore-20260627-13";
 const DRY_THRESHOLD = 1.0;   // mm — <1mm counts as a "dry day" (field-adjustable)
 const PREV_HOST = "https://previous-runs-api.open-meteo.com/v1/forecast";
 const ARCH_HOST = "https://archive-api.open-meteo.com/v1/archive";
@@ -279,7 +283,7 @@ const I18N = {
     gps:"使用我的 GPS", save:"保存地点", data:"数据", sync:"更新记录",
     foot:"预报：ECMWF IFS 9km · DWD ICON · JMA GSM · 实际：ERA5 再分析 · CC BY 4.0",
     langBtn:"中",
-    emptyLoc:"先新增一个果园地点", emptyLocBig:"📍",
+    emptyLoc:"点右上角 ＋ 新增第一个果园地点", emptyLocBig:"📍",
     pickLoc:"选择上方地点查看记分", noData:"尚无记录，点「更新记录」",
     how:"每次打开会记录各模型对「今天」的雨量预报，并用最近 7 天的存档自动补回遗漏的日子。实际雨量用 ERA5 再分析回填（约延迟 5 天）。",
     mae:"平均误差", maeUnit:"毫米/天", hit:"晴雨命中", hitUnit:"准确率",
@@ -307,6 +311,7 @@ const I18N = {
     softDeleted:"已删除", undo:"撤销", restored:"已恢复 ✓", purged:"回收站已清空",
     keptHist:"记录已保留，可随时恢复",
     keptNear:(m)=>`位置微调 ${m} 米（同一网格）· 记录已保留`,
+    shareWA:"📤 分享到 WhatsApp", copied:"已复制到剪贴板 ✓", shareFail:"分享失败",
   },
   en:{
     brandName:"RainScore", brandSub:"forecast vs actual",
@@ -314,7 +319,7 @@ const I18N = {
     gps:"Use my GPS", save:"Save location", data:"Data", sync:"Update records",
     foot:"Forecasts: ECMWF IFS 9km · DWD ICON · JMA GSM · Actual: ERA5 reanalysis · CC BY 4.0",
     langBtn:"EN",
-    emptyLoc:"Add an orchard location to begin", emptyLocBig:"📍",
+    emptyLoc:"Tap ＋ (top right) to add your first orchard", emptyLocBig:"📍",
     pickLoc:"Pick a location above to see its scorecard", noData:"No records yet — tap Update records",
     how:"Each time you open the app it logs what every model forecast for today, and back-fills any missed days from the last 7 days of archive. Actual rain is filled from ERA5 reanalysis (about 5 days behind).",
     mae:"Avg miss", maeUnit:"mm/day", hit:"Dry/wet calls", hitUnit:"correct",
@@ -342,6 +347,7 @@ const I18N = {
     softDeleted:"Deleted", undo:"Undo", restored:"Restored ✓", purged:"Recycle bin emptied",
     keptHist:"Records kept — restore anytime",
     keptNear:(m)=>`Moved ${m} m (same grid cell) · records kept`,
+    shareWA:"📤 Share to WhatsApp", copied:"Copied to clipboard ✓", shareFail:"Share failed",
   }
 };
 let LANG = localStorage.getItem("rainscore_lang") || "zh";
@@ -656,10 +662,68 @@ function renderVerdict(){
     <div class="line">${amtLine}${hitLine?"<br>"+hitLine:""}</div>
     ${baseLine?`<div class="baseline-rec">${baseLine}</div>`:''}
     <div class="dualnote">${t.dualnote}</div>
+    <button class="share-btn" id="btnShare" type="button">${t.shareWA}</button>
   </div>`;
+  const sb=$("#btnShare");
+  if(sb) sb.addEventListener("click", ()=>shareVerdict(loc, sc));
 }
 /* map a model key to its verdict-text colour class (defined inline below) */
 function cssClassFor(key){ return "m-"+key; }
+
+/* Build a plain-text WhatsApp summary of a location's scorecard. Mirrors the
+   verdict card but as text a farmer can read in a chat. No HTML, no colours. */
+function buildShareText(loc, sc){
+  const t=T();
+  const lines=[];
+  lines.push(`🌧️ ${t.brandName} — ${loc.name}`);
+  lines.push(`${sc.cmpN} ${t.days} · ${range}d`);
+  lines.push("");
+  // per-model line: label · MAE mm/day · hit%
+  for(const m of MODELS){
+    const mae = sc.mae && sc.mae[m.key]!=null ? sc.mae[m.key] : null;
+    const hit = sc.hit && sc.hit[m.key]!=null ? sc.hit[m.key] : null;
+    if(mae==null && hit==null) continue;
+    const base = m.key==="ifs" ? ` (${t.baseline})` : "";
+    const maePart = mae!=null ? `${t.mae} ${mae} ${t.maeUnit}` : "";
+    const hitPart = hit!=null ? `${t.hit} ${hit}%` : "";
+    const sep = maePart && hitPart ? " · " : "";
+    lines.push(`▸ ${modelLabel(m.key)}${base}: ${maePart}${sep}${hitPart}`);
+  }
+  lines.push("");
+  // verdict sentences (strip any HTML tags from the i18n strings)
+  const winMae = bestByMae(sc.mae);
+  const winHit = sc.hit? bestByHit(sc.hit) : null;
+  const strip = s => s.replace(/<[^>]+>/g,"");
+  if(winMae){
+    lines.push(strip(winMae.tie ? t.tieAmt : t.bestAmt({name:modelLabel(winMae.key),cls:""})));
+  }
+  if(winHit){
+    lines.push(strip(winHit.tie ? t.tieHit : t.bestHit({name:modelLabel(winHit.key),cls:""})));
+  }
+  if(winMae && !winMae.tie){
+    lines.push("");
+    lines.push(strip(winMae.key==="ifs" ? t.baseIsBest : t.betterThanBase({name:modelLabel(winMae.key),cls:""})));
+  }
+  return lines.join("\n");
+}
+
+/* Share via the native share sheet (best on mobile / iOS), falling back to a
+   wa.me deep link, and finally to clipboard. Matches the WeatherNext share pattern. */
+async function shareVerdict(loc, sc){
+  const text = buildShareText(loc, sc);
+  // 1) Web Share API — opens the OS share sheet incl. WhatsApp (works well on iOS/Android)
+  if(navigator.share){
+    try{ await navigator.share({ text }); return; }
+    catch(e){ if(e && e.name==="AbortError") return; /* user cancelled */ }
+  }
+  // 2) wa.me deep link — opens WhatsApp directly with the text pre-filled
+  const wa = "https://wa.me/?text=" + encodeURIComponent(text);
+  const win = window.open(wa, "_blank");
+  if(win) return;
+  // 3) clipboard fallback
+  try{ await navigator.clipboard.writeText(text); showToast(T().copied); }
+  catch(e){ showToast(T().shareFail); }
+}
 function renderTable(){
   const mount=$("#tableMount"), t=T();
   if(!activeLoc){ mount.innerHTML=""; return; }
@@ -870,7 +934,6 @@ $("#rangeSeg").addEventListener("click",e=>{
 
 /* ---------- boot: render, then log-on-open auto-sync of active location ---------- */
 renderAll();
-if(!state.locations.length){ openForm(); }   // first run: show the form straight away
 if(activeLoc) doSync();   // log-on-open + gap-fill happens here every launch
 
 if("serviceWorker" in navigator){
