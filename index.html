@@ -159,7 +159,7 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
   </div>
   <div class="spacer"></div>
   <button class="add-btn" id="btnOpenAdd" title="Add a location">＋</button>
-  <button class="lang" id="langBtn">中文</button>
+  <button class="lang" id="langBtn">中</button>
 </header>
 
 <div class="wrap">
@@ -179,7 +179,7 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
       </div>
       <div id="editingTag" class="banner info" style="display:none"></div>
       <label class="fld" id="t_locname">Name</label>
-      <input id="inName" placeholder="Manchis Orchard">
+      <input id="inName" placeholder="My Orchard">
       <div class="row">
         <div>
           <label class="fld" id="t_lat">Latitude</label>
@@ -232,7 +232,7 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
 
 const TZ = "Asia/Kuching";
 const STORE_KEY = "rainscore_v1";
-const CACHE_TAG = "rainscore-20260627-04";
+const CACHE_TAG = "rainscore-20260627-06";
 const DRY_THRESHOLD = 1.0;   // mm — <1mm counts as a "dry day" (field-adjustable)
 const PREV_HOST = "https://previous-runs-api.open-meteo.com/v1/forecast";
 const ARCH_HOST = "https://archive-api.open-meteo.com/v1/archive";
@@ -241,10 +241,10 @@ const ARCH_HOST = "https://archive-api.open-meteo.com/v1/archive";
 const I18N = {
   zh:{
     brandName:"雨准", brandSub:"预报 对 实际",
-    locations:"地点", addloc:"+ 新增地点", locname:"名称", lat:"纬度", lon:"经度",
+    locations:"地点", addloc:"+ 新增地点", locname:"名称", lat:"纬度", lon:"经度", namePh:"我的果园",
     gps:"使用我的 GPS", save:"保存地点", data:"数据", sync:"更新记录",
     foot:"预报：Open-Meteo Best Match 与 ECMWF IFS · 实际：ERA5 再分析 · CC BY 4.0",
-    langBtn:"EN",
+    langBtn:"中",
     emptyLoc:"先新增一个果园地点", emptyLocBig:"📍",
     pickLoc:"选择上方地点查看记分", noData:"尚无记录，点「更新记录」",
     how:"每次打开会记录各模型对「今天」的雨量预报，并用最近 7 天的存档自动补回遗漏的日子。实际雨量用 ERA5 再分析回填（约延迟 5 天）。",
@@ -274,10 +274,10 @@ const I18N = {
   },
   en:{
     brandName:"RainScore", brandSub:"forecast vs actual",
-    locations:"Locations", addloc:"+ Add a location", locname:"Name", lat:"Latitude", lon:"Longitude",
+    locations:"Locations", addloc:"+ Add a location", locname:"Name", lat:"Latitude", lon:"Longitude", namePh:"My Orchard",
     gps:"Use my GPS", save:"Save location", data:"Data", sync:"Update records",
     foot:"Forecasts: Open-Meteo Best Match & ECMWF IFS · Actual: ERA5 reanalysis · CC BY 4.0",
-    langBtn:"中文",
+    langBtn:"EN",
     emptyLoc:"Add an orchard location to begin", emptyLocBig:"📍",
     pickLoc:"Pick a location above to see its scorecard", noData:"No records yet — tap Update records",
     how:"Each time you open the app it logs what every model forecast for today, and back-fills any missed days from the last 7 days of archive. Actual rain is filled from ERA5 reanalysis (about 5 days behind).",
@@ -457,6 +457,7 @@ function applyStaticText(){
   $("#formTitle").textContent = editingId? t.update : t.addloc2.replace(/^\+\s*/,"");
   $("#btnOpenAdd").title = t.addloc2.replace(/^\+\s*/,"");
   $("#t_locname").textContent=t.locname; $("#t_lat").textContent=t.lat; $("#t_lon").textContent=t.lon;
+  $("#inName").placeholder=t.namePh;
   $("#t_gps").textContent=t.gps;
   $("#btnAdd").textContent = editingId? t.update : t.save;
   if(editingId){ $("#btnCancelEdit").textContent=t.cancel;
