@@ -1,0 +1,46 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26374f"/>
+      <stop offset="1" stop-color="#0f1620"/>
+    </linearGradient>
+    <linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#69cdf3"/>
+      <stop offset="1" stop-color="#3a8ec0"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="9" stdDeviation="14" flood-color="#000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+
+  <!-- cluster scaled up ~1.12 and centred around icon middle (256,256) -->
+  <g transform="translate(256,250) scale(1.12) translate(-256,-250)">
+    <!-- scorecard baseline grid -->
+    <g stroke="#3a4d65" stroke-width="4" opacity="0.75">
+      <line x1="140" y1="352" x2="372" y2="352"/>
+      <line x1="140" y1="298" x2="372" y2="298"/>
+      <line x1="140" y1="244" x2="372" y2="244"/>
+    </g>
+
+    <!-- comparison bars: teal = Best Match, amber = ECMWF -->
+    <rect x="156" y="276" width="54" height="76"  rx="14" fill="#62d3c4"/>
+    <rect x="226" y="212" width="54" height="140" rx="14" fill="#e7ad5e"/>
+
+    <!-- hero droplet -->
+    <g filter="url(#soft)">
+      <path d="M330 126
+               C330 126 396 216 396 278
+               a66 66 0 1 1 -132 0
+               C264 216 330 126 330 126 Z"
+            fill="url(#drop)"/>
+      <ellipse cx="309" cy="262" rx="15" ry="25" fill="#ffffff" opacity="0.34"/>
+    </g>
+
+    <!-- verdict check -->
+    <path d="M302 280 l20 20 l39 -45"
+          fill="none" stroke="#06121b" stroke-width="16"
+          stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
+  </g>
+</svg>

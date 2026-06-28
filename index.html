@@ -6,6 +6,16 @@
 <meta name="theme-color" content="#1f2a37">
 <title>RainScore · 雨准</title>
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icon-120.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RainScore">
 <style>
 :root{
   --bg:#0f1620; --panel:#172230; --panel2:#1f2d3d; --ink:#e8eef5; --ink2:#9fb1c6;
@@ -219,7 +229,7 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
   <div id="tableMount"></div>
 
   <footer>
-    <div id="t_foot">Forecasts: Open-Meteo Best Match &amp; ECMWF IFS · Actual: ERA5 reanalysis · CC BY 4.0</div>
+    <div id="t_foot">Forecasts: Open-Meteo Best Match &amp; ECMWF IFS 9km · Actual: ERA5 reanalysis · CC BY 4.0</div>
     <div class="tiny" style="margin-top:4px" id="t_cache"></div>
   </footer>
 </div>
@@ -232,7 +242,7 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
 
 const TZ = "Asia/Kuching";
 const STORE_KEY = "rainscore_v1";
-const CACHE_TAG = "rainscore-20260627-06";
+const CACHE_TAG = "rainscore-20260627-08";
 const DRY_THRESHOLD = 1.0;   // mm — <1mm counts as a "dry day" (field-adjustable)
 const PREV_HOST = "https://previous-runs-api.open-meteo.com/v1/forecast";
 const ARCH_HOST = "https://archive-api.open-meteo.com/v1/archive";
@@ -243,7 +253,7 @@ const I18N = {
     brandName:"雨准", brandSub:"预报 对 实际",
     locations:"地点", addloc:"+ 新增地点", locname:"名称", lat:"纬度", lon:"经度", namePh:"我的果园",
     gps:"使用我的 GPS", save:"保存地点", data:"数据", sync:"更新记录",
-    foot:"预报：Open-Meteo Best Match 与 ECMWF IFS · 实际：ERA5 再分析 · CC BY 4.0",
+    foot:"预报：Open-Meteo Best Match 与 ECMWF IFS 9km · 实际：ERA5 再分析 · CC BY 4.0",
     langBtn:"中",
     emptyLoc:"先新增一个果园地点", emptyLocBig:"📍",
     pickLoc:"选择上方地点查看记分", noData:"尚无记录，点「更新记录」",
@@ -257,7 +267,7 @@ const I18N = {
     dualnote:"两个分数回答不同问题：平均误差＝雨量信得过多少；晴雨命中＝它说「无雨」时信得过多少。",
     colDate:"日期", colBM:"BM预报", colEC:"EC预报", colAct:"实际", colBMd:"BM差", colECd:"EC差",
     pending:"待回填", legendHit:"晴雨判对", legendMiss:"晴雨判错",
-    bm:"Best Match", ec:"ECMWF",
+    bm:"Best Match", ec:"ECMWF 9km",
     syncing:"更新中…", synced:(n)=>`已更新 · ${n} 天有实际数据`,
     syncErr:"更新失败，请检查网络", gpsErr:"无法取得定位", gpsOk:"已带入坐标",
     needName:"请填写名称与坐标", confirmDel:"删除此地点及其记录？",
@@ -276,7 +286,7 @@ const I18N = {
     brandName:"RainScore", brandSub:"forecast vs actual",
     locations:"Locations", addloc:"+ Add a location", locname:"Name", lat:"Latitude", lon:"Longitude", namePh:"My Orchard",
     gps:"Use my GPS", save:"Save location", data:"Data", sync:"Update records",
-    foot:"Forecasts: Open-Meteo Best Match & ECMWF IFS · Actual: ERA5 reanalysis · CC BY 4.0",
+    foot:"Forecasts: Open-Meteo Best Match & ECMWF IFS 9km · Actual: ERA5 reanalysis · CC BY 4.0",
     langBtn:"EN",
     emptyLoc:"Add an orchard location to begin", emptyLocBig:"📍",
     pickLoc:"Pick a location above to see its scorecard", noData:"No records yet — tap Update records",
@@ -290,7 +300,7 @@ const I18N = {
     dualnote:"The two scores answer different questions: Avg miss = how much to trust the amount; Dry/wet calls = how much to trust it when it says “dry”.",
     colDate:"Date", colBM:"BM fc", colEC:"EC fc", colAct:"Actual", colBMd:"BM err", colECd:"EC err",
     pending:"pending", legendHit:"dry/wet right", legendMiss:"dry/wet wrong",
-    bm:"Best Match", ec:"ECMWF",
+    bm:"Best Match", ec:"ECMWF 9km",
     syncing:"Updating…", synced:(n)=>`Updated · ${n} days with actuals`,
     syncErr:"Update failed — check connection", gpsErr:"Couldn't get location", gpsOk:"Coordinates filled",
     needName:"Enter a name and coordinates", confirmDel:"Delete this location and its records?",
@@ -406,7 +416,7 @@ async function syncLocation(loc, pastDays, onStep){
   onStep && onStep("forecast");
   const [bm, ec] = await Promise.all([
     fetchForecastDaily(loc.lat, loc.lon, "", pastDays),          // Best Match = no model param
-    fetchForecastDaily(loc.lat, loc.lon, "ecmwf_ifs025", pastDays)
+    fetchForecastDaily(loc.lat, loc.lon, "ecmwf_ifs", pastDays)  // 9km IFS HRES — same as WeatherNext
   ]);
   for(const day in bm){ recs[day]=recs[day]||{}; if(recs[day].bm==null) recs[day].bm=bm[day]; }
   for(const day in ec){ recs[day]=recs[day]||{}; if(recs[day].ec==null) recs[day].ec=ec[day]; }
