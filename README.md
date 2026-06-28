@@ -1,7 +1,7 @@
 # RainScore · 雨准
 
 Forecast-vs-actual rainfall scorecard for durian farmers. Compares Open-Meteo
-**GraphCast AI** and **ECMWF IFS 9km** rain forecasts against **ERA5** actual rainfall,
+three rain forecast models — **ECMWF IFS 9km** (the WeatherNext baseline), **ECMWF AIFS** (AI), and **JMA GSM** (Japan) — against **ERA5** actual rainfall,
 per GPS location, and tells you which model has been more accurate.
 
 Two scores, because farmers care about two different things:
@@ -58,12 +58,21 @@ request and confirm the host isn't blocked by the network.
 - `CACHE_TAG` / `CACHE` in `sw.js` — bump both together on each update so installed
   phones pick up new code.
 
-Data: Open-Meteo (CC BY 4.0). Forecasts GraphCast AI (`gfs_graphcast025`) & ECMWF IFS 9km (`ecmwf_ifs`); actuals ERA5.
+Data: Open-Meteo (CC BY 4.0). Forecasts: ECMWF IFS 9km (`ecmwf_ifs`), ECMWF AIFS (`ecmwf_aifs025`), JMA GSM (`jma_gsm`); actuals ERA5.
 
-## Why GraphCast, not Best Match
-In Malaysia, Open-Meteo's `best_match` resolves to ECMWF IFS (the best global
-model for the region), so comparing Best Match against ECMWF would compare the
-same model to itself — both columns came out identical in testing. GraphCast
-(`gfs_graphcast025`) is a distinct AI/ML model, giving a real physics-vs-AI
-head-to-head. If you ever want a different second model, change the one string in
-`syncLocation()` and update the `bm:` labels in both language blocks.
+## Models & why three
+The purpose is to find a better forecast model for farmers unhappy with the
+current WeatherNext broadcast (ECMWF IFS 9km). So the table shows IFS 9km — the
+baseline — against two candidate replacements: ECMWF AIFS (ECMWF's own AI model,
+clean precipitation in Open-Meteo) and JMA GSM (Japan's global model, strong
+heritage for tropical-Asia convection). The verdict highlights the most accurate
+model and, when a candidate beats IFS at a location, recommends switching that
+farmer.
+
+GraphCast was tried first but Open-Meteo cannot serve its precipitation reliably
+(GRIB decode marks it "unknown"), so it returns blank for rain — unusable here.
+
+To change the model line-up, edit the `MODELS` array near the top of the script
+(one line per model: `key`, `api` id, `cssVar` colour, `short` label) and add the
+matching `models:{...}` labels in both language blocks. Everything else — sync,
+scoring, verdict, table — loops over that array automatically.

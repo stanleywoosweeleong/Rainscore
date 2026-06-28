@@ -20,6 +20,7 @@
 :root{
   --bg:#0f1620; --panel:#172230; --panel2:#1f2d3d; --ink:#e8eef5; --ink2:#9fb1c6;
   --line:#2b3a4d; --rain:#4aa8d8; --bm:#5dd0c0; --ec:#e3a857; --win:#7bd88f;
+  --m1:#5dd0c0; --m2:#e3a857; --m3:#b48ee8;
   --bad:#e2715f; --warn:#e3b341; --shadow:rgba(0,0,0,.35);
   --pad:16px;
 }
@@ -100,16 +101,27 @@ input:focus,select:focus{outline:2px solid var(--rain);outline-offset:0}
 .verdict .head .loc-nm{font-size:17px;font-weight:700}
 .verdict .head .span{font-size:12px;color:var(--ink2)}
 .vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:10px}
+.vs3{grid-template-columns:1fr 1fr 1fr;gap:7px}
+.basetag{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--rain);
+  margin-top:2px;font-weight:600;min-height:13px}
+.baseline-rec{margin-top:12px;padding:10px 12px;border-radius:10px;
+  background:rgba(74,168,216,.1);border:1px solid rgba(74,168,216,.35);
+  font-size:13.5px;line-height:1.5;color:#bfe1f3}
+.baseline-rec b{font-weight:700}
+.m-ifs{color:var(--m1)} .m-aifs{color:var(--m2)} .m-jma{color:var(--m3)}
+.verdict .line b.m-ifs{color:var(--m1)} .verdict .line b.m-aifs{color:var(--m2)} .verdict .line b.m-jma{color:var(--m3)}
+.baseline-rec b.m-ifs{color:var(--m1)} .baseline-rec b.m-aifs{color:var(--m2)} .baseline-rec b.m-jma{color:var(--m3)}
 .mcol{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
-  padding:14px 12px;text-align:center;position:relative}
+  padding:12px 6px;text-align:center;position:relative}
 .mcol.winner{border-color:var(--win);box-shadow:0 0 0 1px var(--win)}
-.mcol .mname{font-size:13px;font-weight:700;letter-spacing:.3px}
-.mcol.bm .mname{color:var(--bm)} .mcol.ec .mname{color:var(--ec)}
-.mcol .metric{margin-top:10px}
-.mcol .mlabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2)}
-.mcol .mval{font-size:26px;font-weight:800;line-height:1.1;margin-top:1px;
+.mcol .mname{font-size:12.5px;font-weight:700;letter-spacing:.2px}
+.vs3 .mcol .mname{font-size:12px}
+.mcol .metric{margin-top:9px}
+.mcol .mlabel{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink2)}
+.mcol .mval{font-size:22px;font-weight:800;line-height:1.1;margin-top:1px;
   font-variant-numeric:tabular-nums}
-.mcol .munit{font-size:12px;color:var(--ink2)}
+.vs3 .mcol .mval{font-size:19px}
+.mcol .munit{font-size:10.5px;color:var(--ink2)}
 .mcol .crown{position:absolute;top:-11px;left:50%;transform:translateX(-50%);
   background:var(--win);color:#06121b;font-size:10px;font-weight:800;
   padding:2px 8px;border-radius:999px;letter-spacing:.4px}
@@ -229,7 +241,7 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
   <div id="tableMount"></div>
 
   <footer>
-    <div id="t_foot">Forecasts: Open-Meteo GraphCast AI &amp; ECMWF IFS 9km · Actual: ERA5 reanalysis · CC BY 4.0</div>
+    <div id="t_foot">Forecasts: ECMWF IFS 9km · AIFS · JMA GSM · Actual: ERA5 reanalysis · CC BY 4.0</div>
     <div class="tiny" style="margin-top:4px" id="t_cache"></div>
   </footer>
 </div>
@@ -242,10 +254,22 @@ footer{text-align:center;padding:18px 10px 8px;font-size:11px;color:var(--ink2)}
 
 const TZ = "Asia/Kuching";
 const STORE_KEY = "rainscore_v1";
-const CACHE_TAG = "rainscore-20260627-09";
+const CACHE_TAG = "rainscore-20260627-10";
 const DRY_THRESHOLD = 1.0;   // mm — <1mm counts as a "dry day" (field-adjustable)
 const PREV_HOST = "https://previous-runs-api.open-meteo.com/v1/forecast";
 const ARCH_HOST = "https://archive-api.open-meteo.com/v1/archive";
+
+/* The models compared, in display order. Single source of truth: to add, remove,
+   or swap a model, edit this array only — sync, scoring, verdict and table all
+   loop over it. `key` is the stored/data key; `api` is the Open-Meteo model id;
+   `cssVar` ties to a --colour; `short` is the table abbreviation. `label` is
+   resolved per-language from I18N[lang].models[key]. IFS 9km is the WeatherNext
+   baseline; AIFS and JMA are the candidate alternatives. */
+const MODELS = [
+  { key:"ifs",  api:"ecmwf_ifs",      cssVar:"--m1", short:"IFS"  },
+  { key:"aifs", api:"ecmwf_aifs025",  cssVar:"--m2", short:"AIFS" },
+  { key:"jma",  api:"jma_gsm",        cssVar:"--m3", short:"JMA"  },
+];
 
 /* ---------- i18n (one-tap toggle, zh structural base) ---------- */
 const I18N = {
@@ -253,21 +277,23 @@ const I18N = {
     brandName:"雨准", brandSub:"预报 对 实际",
     locations:"地点", addloc:"+ 新增地点", locname:"名称", lat:"纬度", lon:"经度", namePh:"我的果园",
     gps:"使用我的 GPS", save:"保存地点", data:"数据", sync:"更新记录",
-    foot:"预报：Open-Meteo GraphCast AI 与 ECMWF IFS 9km · 实际：ERA5 再分析 · CC BY 4.0",
+    foot:"预报：ECMWF IFS 9km · AIFS · JMA GSM · 实际：ERA5 再分析 · CC BY 4.0",
     langBtn:"中",
     emptyLoc:"先新增一个果园地点", emptyLocBig:"📍",
     pickLoc:"选择上方地点查看记分", noData:"尚无记录，点「更新记录」",
     how:"每次打开会记录各模型对「今天」的雨量预报，并用最近 7 天的存档自动补回遗漏的日子。实际雨量用 ERA5 再分析回填（约延迟 5 天）。",
     mae:"平均误差", maeUnit:"毫米/天", hit:"晴雨命中", hitUnit:"准确率",
-    days:"天", winner:"较准", tie:"打平",
-    closerAmt:(w)=>`雨量上，<b class="${w.cls}">${w.name}</b> 这个月更接近实际。`,
-    closerHit:(w)=>`判断「有雨／无雨」上，<b class="${w.cls}">${w.name}</b> 命中更高。`,
-    tieAmt:"雨量上两个模型不相上下。",
-    tieHit:"晴雨判断上两个模型不相上下。",
+    days:"天", winner:"最准", tie:"打平", baseline:"目前广播",
+    bestAmt:(w)=>`雨量上，<b class="${w.cls}">${w.name}</b> 这个月最接近实际。`,
+    bestHit:(w)=>`判断「有雨／无雨」上，<b class="${w.cls}">${w.name}</b> 命中最高。`,
+    tieAmt:"雨量上各模型不相上下。",
+    tieHit:"晴雨判断上各模型不相上下。",
+    betterThanBase:(w)=>`👉 此地点 <b class="${w.cls}">${w.name}</b> 比目前广播的 IFS 9km 更准 — 可考虑为此农户改用。`,
+    baseIsBest:"目前广播的 IFS 9km 在此地点已是最准 — 无需更换。",
     dualnote:"两个分数回答不同问题：平均误差＝雨量信得过多少；晴雨命中＝它说「无雨」时信得过多少。",
-    colDate:"日期", colBM:"GC预报", colEC:"EC预报", colAct:"实际", colBMd:"GC差", colECd:"EC差",
+    colDate:"日期", colAct:"实际",
     pending:"待回填", legendHit:"晴雨判对", legendMiss:"晴雨判错",
-    bm:"GraphCast AI", ec:"ECMWF 9km",
+    models:{ ifs:"IFS 9km", aifs:"AIFS", jma:"JMA" },
     syncing:"更新中…", synced:(n)=>`已更新 · ${n} 天有实际数据`,
     syncErr:"更新失败，请检查网络", gpsErr:"无法取得定位", gpsOk:"已带入坐标",
     needName:"请填写名称与坐标", confirmDel:"删除此地点及其记录？",
@@ -286,21 +312,23 @@ const I18N = {
     brandName:"RainScore", brandSub:"forecast vs actual",
     locations:"Locations", addloc:"+ Add a location", locname:"Name", lat:"Latitude", lon:"Longitude", namePh:"My Orchard",
     gps:"Use my GPS", save:"Save location", data:"Data", sync:"Update records",
-    foot:"Forecasts: Open-Meteo GraphCast AI & ECMWF IFS 9km · Actual: ERA5 reanalysis · CC BY 4.0",
+    foot:"Forecasts: ECMWF IFS 9km · AIFS · JMA GSM · Actual: ERA5 reanalysis · CC BY 4.0",
     langBtn:"EN",
     emptyLoc:"Add an orchard location to begin", emptyLocBig:"📍",
     pickLoc:"Pick a location above to see its scorecard", noData:"No records yet — tap Update records",
     how:"Each time you open the app it logs what every model forecast for today, and back-fills any missed days from the last 7 days of archive. Actual rain is filled from ERA5 reanalysis (about 5 days behind).",
     mae:"Avg miss", maeUnit:"mm/day", hit:"Dry/wet calls", hitUnit:"correct",
-    days:"days", winner:"closer", tie:"tie",
-    closerAmt:(w)=>`On rain amount, <b class="${w.cls}">${w.name}</b> was closer this month.`,
-    closerHit:(w)=>`On calling rain vs dry, <b class="${w.cls}">${w.name}</b> got more right.`,
-    tieAmt:"On rain amount, the two models were level this month.",
-    tieHit:"On dry/wet calls, the two models were level.",
+    days:"days", winner:"best", tie:"tie", baseline:"broadcast now",
+    bestAmt:(w)=>`On rain amount, <b class="${w.cls}">${w.name}</b> was closest this month.`,
+    bestHit:(w)=>`On calling rain vs dry, <b class="${w.cls}">${w.name}</b> got the most right.`,
+    tieAmt:"On rain amount, the models were level this month.",
+    tieHit:"On dry/wet calls, the models were level.",
+    betterThanBase:(w)=>`👉 At this spot <b class="${w.cls}">${w.name}</b> beats the IFS 9km you broadcast now — worth switching this farmer.`,
+    baseIsBest:"The IFS 9km you broadcast now is already best here — no change needed.",
     dualnote:"The two scores answer different questions: Avg miss = how much to trust the amount; Dry/wet calls = how much to trust it when it says “dry”.",
-    colDate:"Date", colBM:"GC fc", colEC:"EC fc", colAct:"Actual", colBMd:"GC err", colECd:"EC err",
+    colDate:"Date", colAct:"Actual",
     pending:"pending", legendHit:"dry/wet right", legendMiss:"dry/wet wrong",
-    bm:"GraphCast AI", ec:"ECMWF 9km",
+    models:{ ifs:"IFS 9km", aifs:"AIFS", jma:"JMA" },
     syncing:"Updating…", synced:(n)=>`Updated · ${n} days with actuals`,
     syncErr:"Update failed — check connection", gpsErr:"Couldn't get location", gpsOk:"Coordinates filled",
     needName:"Enter a name and coordinates", confirmDel:"Delete this location and its records?",
@@ -412,15 +440,19 @@ async function fetchActualDaily(lat, lon, startYMD, endYMD){
 /* ---------- the sync routine: log-on-open + 7-day gap-fill + ERA5 actuals ---------- */
 async function syncLocation(loc, pastDays, onStep){
   const recs = state.records[loc.id] || (state.records[loc.id]={});
-  // 1) Forecasts: recover last min(pastDays,7) days from Previous Runs (self-heals gaps)
+  // 1) Forecasts: recover last min(pastDays,7) days from Previous Runs for every model.
   onStep && onStep("forecast");
-  const [bm, ec] = await Promise.all([
-    fetchForecastDaily(loc.lat, loc.lon, "gfs_graphcast025", pastDays),  // GraphCast AI — distinct from ECMWF
-    fetchForecastDaily(loc.lat, loc.lon, "ecmwf_ifs", pastDays)  // 9km IFS HRES — same as WeatherNext
-  ]);
-  for(const day in bm){ recs[day]=recs[day]||{}; if(recs[day].bm==null) recs[day].bm=bm[day]; }
-  for(const day in ec){ recs[day]=recs[day]||{}; if(recs[day].ec==null) recs[day].ec=ec[day]; }
-  // never overwrite an already-logged forecast — first capture wins (honest record)
+  const results = await Promise.all(
+    MODELS.map(m => fetchForecastDaily(loc.lat, loc.lon, m.api, pastDays)
+                      .catch(()=>({})))   // a model that fails just stays blank, others proceed
+  );
+  results.forEach((daily, i) => {
+    const key = MODELS[i].key;
+    for(const day in daily){
+      recs[day] = recs[day] || {};
+      if(recs[day][key]==null) recs[day][key] = daily[day];  // first capture wins (honest record)
+    }
+  });
 
   // 2) Actuals: ERA5 over the whole requested window (safe to refresh; truth doesn't change)
   onStep && onStep("actual");
@@ -437,25 +469,65 @@ async function syncLocation(loc, pastDays, onStep){
 function scoreLocation(locId, n){
   const recs = state.records[locId]||{};
   const days = dateRange(n);
-  const rows=[]; let bmAbs=0, ecAbs=0, cmpN=0, bmHit=0, ecHit=0, hitN=0;
+  const rows=[];
+  // per-model accumulators
+  const acc = {}; MODELS.forEach(m=>acc[m.key]={absSum:0, maeN:0, hits:0, hitN:0});
+  let anyCmp = 0;  // days where actual exists AND at least one model has a value
+
   for(const day of days){
     const r = recs[day]||{};
-    const row = { day, bm:r.bm, ec:r.ec, actual:r.actual, bmErr:null, ecErr:null, bmHit:null, ecHit:null };
-    if(r.actual!=null){
-      if(r.bm!=null){ row.bmErr=Math.round((r.bm-r.actual)*10)/10; bmAbs+=Math.abs(r.bm-r.actual); }
-      if(r.ec!=null){ row.ecErr=Math.round((r.ec-r.actual)*10)/10; ecAbs+=Math.abs(r.ec-r.actual); }
-      if(r.bm!=null&&r.ec!=null){ cmpN++; }
-      const actWet = r.actual>=DRY_THRESHOLD;
-      if(r.bm!=null){ row.bmHit=((r.bm>=DRY_THRESHOLD)===actWet); }
-      if(r.ec!=null){ row.ecHit=((r.ec>=DRY_THRESHOLD)===actWet); }
-      if(r.bm!=null&&r.ec!=null){ hitN++; if(row.bmHit)bmHit++; if(row.ecHit)ecHit++; }
+    const row = { day, actual:r.actual, vals:{}, errs:{}, hits:{} };
+    let rowHasModel = false;
+    for(const m of MODELS){
+      const v = r[m.key];
+      row.vals[m.key] = v;
+      if(v!=null) rowHasModel = true;
+      if(r.actual!=null && v!=null){
+        const err = Math.round((v - r.actual)*10)/10;
+        row.errs[m.key] = err;
+        acc[m.key].absSum += Math.abs(v - r.actual); acc[m.key].maeN++;
+        const hit = (v>=DRY_THRESHOLD) === (r.actual>=DRY_THRESHOLD);
+        row.hits[m.key] = hit;
+        acc[m.key].hitN++; if(hit) acc[m.key].hits++;
+      }
     }
-    if(r.bm!=null||r.ec!=null||r.actual!=null) rows.push(row);
+    if(r.actual!=null && rowHasModel) anyCmp++;
+    if(rowHasModel || r.actual!=null) rows.push(row);
   }
-  const mae = cmpN? { bm:Math.round(bmAbs/cmpN*10)/10, ec:Math.round(ecAbs/cmpN*10)/10 } : null;
-  const hit = hitN? { bm:Math.round(bmHit/hitN*100), ec:Math.round(ecHit/hitN*100), n:hitN } : null;
-  return { rows, mae, hit, cmpN };
+
+  // build per-model MAE / hit% (null if that model has no comparable days)
+  const mae={}, hit={}; let haveMae=false, haveHit=false;
+  for(const m of MODELS){
+    const a=acc[m.key];
+    if(a.maeN){ mae[m.key]=Math.round(a.absSum/a.maeN*10)/10; haveMae=true; } else mae[m.key]=null;
+    if(a.hitN){ hit[m.key]=Math.round(a.hits/a.hitN*100); haveHit=true; } else hit[m.key]=null;
+  }
+  return {
+    rows,
+    mae: haveMae? mae : null,
+    hit: haveHit? hit : null,
+    cmpN: anyCmp
+  };
 }
+
+/* pick the model key with the lowest MAE (amount) or highest hit% (dry/wet).
+   Returns {key, tie} — tie true when the top two are equal. */
+function bestByMae(mae){
+  const entries = MODELS.map(m=>[m.key, mae[m.key]]).filter(([k,v])=>v!=null);
+  if(!entries.length) return null;
+  entries.sort((a,b)=>a[1]-b[1]);
+  const tie = entries.length>1 && entries[0][1]===entries[1][1];
+  return { key:entries[0][0], tie, value:entries[0][1] };
+}
+function bestByHit(hit){
+  const entries = MODELS.map(m=>[m.key, hit[m.key]]).filter(([k,v])=>v!=null);
+  if(!entries.length) return null;
+  entries.sort((a,b)=>b[1]-a[1]);
+  const tie = entries.length>1 && entries[0][1]===entries[1][1];
+  return { key:entries[0][0], tie, value:entries[0][1] };
+}
+function modelLabel(key){ return T().models[key] || key; }
+function modelCss(key){ const m=MODELS.find(x=>x.key===key); return m?m.cssVar:"--m1"; }
 
 /* ---------- rendering ---------- */
 const $ = s=>document.querySelector(s);
@@ -540,12 +612,39 @@ function renderVerdict(){
   const sc=scoreLocation(activeLoc, range);
   if(!sc.mae){ mount.innerHTML=`<div class="card"><div class="empty">${t.noData}</div></div>`; return; }
 
-  const bmWinAmt = sc.mae.bm < sc.mae.ec, amtTie = sc.mae.bm===sc.mae.ec;
-  const bmWinHit = sc.hit && sc.hit.bm > sc.hit.ec, hitTie = sc.hit && sc.hit.bm===sc.hit.ec;
-  const W=(isBm)=>isBm?{name:t.bm,cls:"bm"}:{name:t.ec,cls:"ec"};
+  const winMae = bestByMae(sc.mae);
+  const winHit = sc.hit? bestByHit(sc.hit) : null;
 
-  const amtLine = amtTie? t.tieAmt : t.closerAmt(W(bmWinAmt));
-  const hitLine = !sc.hit? "" : (hitTie? t.tieHit : t.closerHit(W(bmWinHit)));
+  // model columns
+  let cols="";
+  for(const m of MODELS){
+    const isBaseline = m.key==="ifs";
+    const maeWin = winMae && winMae.key===m.key && !winMae.tie;
+    const maeVal = sc.mae[m.key]==null? "—" : sc.mae[m.key];
+    const hitVal = (sc.hit && sc.hit[m.key]!=null)? sc.hit[m.key] : null;
+    cols += `
+      <div class="mcol ${maeWin?'winner':''}" style="--mc:var(${m.cssVar})">
+        ${maeWin?`<div class="crown">${t.winner}</div>`:''}
+        <div class="mname" style="color:var(${m.cssVar})">${modelLabel(m.key)}</div>
+        ${isBaseline?`<div class="basetag">${t.baseline}</div>`:'<div class="basetag">&nbsp;</div>'}
+        <div class="metric"><div class="mlabel">${t.mae}</div>
+          <div class="mval">${maeVal}<span class="munit"> ${t.maeUnit}</span></div></div>
+        ${hitVal!=null?`<div class="metric"><div class="mlabel">${t.hit}</div>
+          <div class="mval">${hitVal}<span class="munit">%</span></div></div>`:''}
+      </div>`;
+  }
+
+  // verdict lines
+  const W=(key)=>({name:modelLabel(key), cls:cssClassFor(key)});
+  const amtLine = winMae.tie? t.tieAmt : t.bestAmt(W(winMae.key));
+  const hitLine = !winHit? "" : (winHit.tie? t.tieHit : t.bestHit(W(winHit.key)));
+
+  // baseline recommendation: does a non-IFS model beat IFS on amount?
+  let baseLine = "";
+  if(winMae && !winMae.tie){
+    if(winMae.key==="ifs") baseLine = t.baseIsBest;
+    else baseLine = t.betterThanBase(W(winMae.key));
+  }
 
   mount.innerHTML=`
   <div class="verdict">
@@ -553,67 +652,69 @@ function renderVerdict(){
       <div class="loc-nm">${esc(loc.name)}</div>
       <div class="span">${sc.cmpN} ${t.days} · ${range}d</div>
     </div>
-    <div class="vs">
-      <div class="mcol bm ${bmWinAmt&&!amtTie?'winner':''}">
-        ${bmWinAmt&&!amtTie?`<div class="crown">${t.winner}</div>`:''}
-        <div class="mname">${t.bm}</div>
-        <div class="metric"><div class="mlabel">${t.mae}</div>
-          <div class="mval">${sc.mae.bm}<span class="munit"> ${t.maeUnit}</span></div></div>
-        ${sc.hit?`<div class="metric"><div class="mlabel">${t.hit}</div>
-          <div class="mval">${sc.hit.bm}<span class="munit">%</span></div></div>`:''}
-      </div>
-      <div class="vmid">vs</div>
-      <div class="mcol ec ${!bmWinAmt&&!amtTie?'winner':''}">
-        ${!bmWinAmt&&!amtTie?`<div class="crown">${t.winner}</div>`:''}
-        <div class="mname">${t.ec}</div>
-        <div class="metric"><div class="mlabel">${t.mae}</div>
-          <div class="mval">${sc.mae.ec}<span class="munit"> ${t.maeUnit}</span></div></div>
-        ${sc.hit?`<div class="metric"><div class="mlabel">${t.hit}</div>
-          <div class="mval">${sc.hit.ec}<span class="munit">%</span></div></div>`:''}
-      </div>
-    </div>
+    <div class="vs vs3">${cols}</div>
     <div class="line">${amtLine}${hitLine?"<br>"+hitLine:""}</div>
+    ${baseLine?`<div class="baseline-rec">${baseLine}</div>`:''}
     <div class="dualnote">${t.dualnote}</div>
   </div>`;
 }
+/* map a model key to its verdict-text colour class (defined inline below) */
+function cssClassFor(key){ return "m-"+key; }
 function renderTable(){
   const mount=$("#tableMount"), t=T();
   if(!activeLoc){ mount.innerHTML=""; return; }
   const sc=scoreLocation(activeLoc, range);
   if(!sc.rows.length){ mount.innerHTML=""; return; }
+
+  // header: Date | <each model fc> | Actual | <each model err>
+  let head = `<th>${t.colDate}</th>`;
+  for(const m of MODELS) head += `<th style="color:var(${m.cssVar})">${m.short}</th>`;
+  head += `<th>${t.colAct}</th>`;
+  for(const m of MODELS) head += `<th style="color:var(${m.cssVar})">${m.short}±</th>`;
+
   let body="";
   for(const r of sc.rows.slice().reverse()){
-    const dotBM = r.bmHit==null?"":`<span class="dot ${r.bmHit?'hit':'miss'}"></span>`;
-    const dotEC = r.ecHit==null?"":`<span class="dot ${r.ecHit?'hit':'miss'}"></span>`;
-    body+=`<tr>
+    let fcCells="", errCells="";
+    for(const m of MODELS){
+      const v = r.vals[m.key];
+      const hit = r.hits[m.key];
+      const dot = hit==null? "" : `<span class="dot ${hit?'hit':'miss'}"></span>`;
+      fcCells += `<td style="color:var(${m.cssVar})">${v==null?"—":v}${dot}</td>`;
+      const e = r.errs[m.key];
+      errCells += `<td style="color:var(${m.cssVar})">${e==null?"—":(e>0?"+":"")+e}</td>`;
+    }
+    body += `<tr>
       <td>${shortDate(r.day)}</td>
-      <td class="bm">${r.bm??"—"}${dotBM}</td>
-      <td class="ec">${r.ec??"—"}${dotEC}</td>
+      ${fcCells}
       <td class="${r.actual==null?'pending':'act'}">${r.actual==null?t.pending:r.actual}</td>
-      <td class="bm">${r.bmErr==null?"—":(r.bmErr>0?"+":"")+r.bmErr}</td>
-      <td class="ec">${r.ecErr==null?"—":(r.ecErr>0?"+":"")+r.ecErr}</td>
+      ${errCells}
     </tr>`;
+  }
+
+  // footer: MAE row
+  let maeCells="";
+  for(const m of MODELS){
+    const v = sc.mae? sc.mae[m.key] : null;
+    maeCells += `<td style="color:var(${m.cssVar})">${v==null?"—":v}</td>`;
   }
   const foot = sc.mae?`<tfoot><tr>
       <td class="label">${t.mae}</td>
-      <td class="bm">${sc.mae.bm}</td><td class="ec">${sc.mae.ec}</td>
-      <td></td><td colspan="2" class="label" style="text-align:right">${t.maeUnit}</td>
+      ${maeCells}
+      <td></td>
+      <td class="label" colspan="${MODELS.length}" style="text-align:right">${t.maeUnit}</td>
     </tr></tfoot>`:"";
+
+  let legend = "";
+  for(const m of MODELS) legend += `<span><span class="sw" style="background:var(${m.cssVar})"></span>${modelLabel(m.key)}</span>`;
+  legend += `<span><span class="dot hit"></span>${t.legendHit}</span><span><span class="dot miss"></span>${t.legendMiss}</span>`;
+
   mount.innerHTML=`
   <div class="card">
     <div class="tbl-scroll"><table>
-      <thead><tr>
-        <th>${t.colDate}</th><th>${t.colBM}</th><th>${t.colEC}</th>
-        <th>${t.colAct}</th><th>${t.colBMd}</th><th>${t.colECd}</th>
-      </tr></thead>
+      <thead><tr>${head}</tr></thead>
       <tbody>${body}</tbody>${foot}
     </table></div>
-    <div class="legend">
-      <span><span class="sw" style="background:var(--bm)"></span>${t.bm}</span>
-      <span><span class="sw" style="background:var(--ec)"></span>${t.ec}</span>
-      <span><span class="dot hit"></span>${t.legendHit}</span>
-      <span><span class="dot miss"></span>${t.legendMiss}</span>
-    </div>
+    <div class="legend">${legend}</div>
   </div>`;
 }
 function renderAll(){ applyStaticText(); renderLocList(); renderVerdict(); renderTable(); }
