@@ -1,7 +1,7 @@
 # RainScore · 雨准
 
 Forecast-vs-actual rainfall scorecard for durian farmers. Compares Open-Meteo
-three rain forecast models — **ECMWF IFS 9km** (the WeatherNext baseline), **ECMWF AIFS** (AI), and **JMA GSM** (Japan) — against **ERA5** actual rainfall,
+three rain forecast models — **ECMWF IFS 9km** (the WeatherNext baseline), **DWD ICON** (11km), and **JMA GSM** (Japan) — against **ERA5** actual rainfall,
 per GPS location, and tells you which model has been more accurate.
 
 Two scores, because farmers care about two different things:
@@ -58,19 +58,20 @@ request and confirm the host isn't blocked by the network.
 - `CACHE_TAG` / `CACHE` in `sw.js` — bump both together on each update so installed
   phones pick up new code.
 
-Data: Open-Meteo (CC BY 4.0). Forecasts: ECMWF IFS 9km (`ecmwf_ifs`), ECMWF AIFS (`ecmwf_aifs025`), JMA GSM (`jma_gsm`); actuals ERA5.
+Data: Open-Meteo (CC BY 4.0). Forecasts: ECMWF IFS 9km (`ecmwf_ifs`), DWD ICON (`icon_seamless`), JMA GSM (`jma_gsm`); actuals ERA5.
 
 ## Models & why three
 The purpose is to find a better forecast model for farmers unhappy with the
 current WeatherNext broadcast (ECMWF IFS 9km). So the table shows IFS 9km — the
-baseline — against two candidate replacements: ECMWF AIFS (ECMWF's own AI model,
-clean precipitation in Open-Meteo) and JMA GSM (Japan's global model, strong
-heritage for tropical-Asia convection). The verdict highlights the most accurate
+baseline — against two candidate replacements: DWD ICON (Germany's 11km model,
+strong overall skill and reliable precipitation) and JMA GSM (Japan's global model,
+strong heritage for tropical-Asia convection). The verdict highlights the most accurate
 model and, when a candidate beats IFS at a location, recommends switching that
 farmer.
 
-GraphCast was tried first but Open-Meteo cannot serve its precipitation reliably
-(GRIB decode marks it "unknown"), so it returns blank for rain — unusable here.
+GraphCast and ECMWF AIFS were both tried first but Open-Meteo doesn't serve their
+precipitation reliably through Previous Runs (both returned blank for rain), so
+ICON — which has solid archived precipitation — replaced them.
 
 To change the model line-up, edit the `MODELS` array near the top of the script
 (one line per model: `key`, `api` id, `cssVar` colour, `short` label) and add the
